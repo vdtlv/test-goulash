@@ -413,6 +413,43 @@
   .kitchen-note{font-size:13.5px;color:var(--muted-light);max-width:30ch;}
   @media (max-width:760px){.kitchen-grid{grid-template-columns:repeat(2,1fr);}.kitchen-card.featured{grid-column:span 2;}}
 
+  /* success popup (native <dialog>: focus trap, Esc, top layer) */
+  .btn-ink{background:var(--ink);color:var(--paper);border-color:var(--ink);}
+  .btn-ink:hover{background:var(--cyan-30);border-color:var(--cyan-30);color:var(--ink);}
+  .success-panel:focus{outline:none;}
+  html:has(dialog[open]){overflow:hidden;scrollbar-gutter:stable;}
+  .success-modal{
+    width:min(440px, calc(100% - 32px));
+    padding:0;border:none;border-radius:var(--radius);
+    background:var(--paper);color:var(--ink);
+    box-shadow:0 0 0 1px rgb(0 0 0 / .08), 0 2px 4px rgb(0 0 0 / .08), 0 16px 40px rgb(0 0 0 / .28);
+    /* exit: shorter and softer than the enter */
+    opacity:0;translate:0 8px;
+    transition:opacity .15s ease-out, translate .15s ease-out, overlay .15s allow-discrete, display .15s allow-discrete;
+  }
+  .success-modal[open]{opacity:1;translate:0 0;transition-duration:.25s;}
+  @starting-style{.success-modal[open]{opacity:0;translate:0 12px;}}
+  .success-modal::backdrop{
+    background:rgb(0 0 0 / .64);opacity:0;
+    transition:opacity .15s ease-out, overlay .15s allow-discrete, display .15s allow-discrete;
+  }
+  .success-modal[open]::backdrop{opacity:1;transition-duration:.25s;}
+  @starting-style{.success-modal[open]::backdrop{opacity:0;}}
+  .modal-body{position:relative;padding:40px 32px 32px;display:flex;flex-direction:column;align-items:flex-start;gap:14px;}
+  .modal-body h3{font-size:24px;margin-top:6px;}
+  .modal-body p{font-size:15px;color:var(--muted-light);overflow-wrap:anywhere;margin-bottom:10px;}
+  .modal-close{
+    position:absolute;top:12px;right:12px;width:40px;height:40px;
+    display:flex;align-items:center;justify-content:center;
+    background:none;border:none;border-radius:50%;color:var(--ink);
+    transition:background-color .15s ease-out, scale .15s ease-out;
+  }
+  .modal-close svg{width:22px;height:22px;}
+  .modal-close:hover{background:var(--cyan-15);}
+  .modal-close:active{scale:.96;}
+  .success-modal :focus-visible{outline-color:var(--ink);}
+  @media (prefers-reduced-motion:reduce){.success-modal,.success-modal::backdrop{transition-duration:.01ms;}}
+
   /* icon swap: both icons stay in the DOM, cross-faded with scale + blur */
   .icon-swap{position:relative;display:block;width:24px;height:24px;flex:none;}
   .icon-swap svg{position:absolute;inset:0;width:24px;height:24px;transition:opacity .3s var(--ease-out), scale .3s var(--ease-out), filter .3s var(--ease-out);}
@@ -769,12 +806,12 @@
           </button>
         </form>
 
-        <div class="success-panel" id="successPanel">
+        <div class="success-panel" id="successPanel" tabindex="-1">
           <div class="success-check">
             <svg width="20" height="20" viewBox="0 0 20 20"><path d="M4 10 L8 14 L16 5" stroke="#000" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </div>
           <h3 style="color:var(--paper);font-size:20px;">Заявка отправлена</h3>
-          <p style="color:var(--muted-dark);font-size:14.5px;">Мы свяжемся с вами в течение 15 минут в рабочее время, чтобы обсудить, как Goulash.tech встроится в вашу пиццерию.</p>
+          <p style="color:var(--muted-dark);font-size:14.5px;">Мы свяжемся с вами, чтобы обсудить, как Goulash.tech встроится в вашу пиццерию.</p>
         </div>
       </div>
     </div>
@@ -963,6 +1000,20 @@
   <a target="_blank" rel="noopener noreferrer" href="https://wa.me/79221067336" class="float-btn" aria-label="WhatsApp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg></a>
 </div>
 
+<dialog class="success-modal" id="successModal" aria-labelledby="successTitle" aria-describedby="successText">
+  <div class="modal-body">
+    <button type="button" class="modal-close" data-close aria-label="Закрыть">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+    <div class="success-check">
+      <svg width="20" height="20" viewBox="0 0 20 20"><path d="M4 10 L8 14 L16 5" stroke="#000" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <h3 id="successTitle">Заявка отправлена</h3>
+    <p id="successText">Мы свяжемся с вами, чтобы обсудить, как Goulash.tech поможет вашей пиццерии.</p>
+    <button type="button" class="btn btn-ink" data-close autofocus>Хорошо</button>
+  </div>
+</dialog>
+
 <div class="cookie-bar" id="cookieBar">
   <p>Мы используем cookie-файлы для хранения данных. Оставаясь на сайте, вы даёте согласие на работу с этими файлами.</p>
   <button id="cookieAccept">Хорошо, принимаю</button>
@@ -1100,6 +1151,21 @@
     });
   });
 
+  // success popup
+  var modal = document.getElementById('successModal');
+  function openSuccessModal(){
+    var name = document.getElementById('f-name').value.trim();
+    var phone = document.getElementById('f-phone').value.trim();
+    document.getElementById('successText').textContent =
+      'Спасибо, ' + name + '! Мы свяжемся с вами по номеру ' + phone + ', чтобы обсудить, как Goulash.tech поможет вашей пиццерии.';
+    if (typeof modal.showModal === 'function') modal.showModal(); else modal.setAttribute('open', '');
+  }
+  modal.querySelectorAll('[data-close]').forEach(function(btn){
+    btn.addEventListener('click', function(){ modal.close(); });
+  });
+  modal.addEventListener('click', function(e){ if(e.target === modal) modal.close(); }); // backdrop click
+  modal.addEventListener('close', function(){ successPanel.focus({preventScroll:true}); });
+
   var consentInput = document.getElementById('f-consent');
   var consentField = fieldEl('consent');
   consentInput.addEventListener('change', function(){
@@ -1126,11 +1192,15 @@
     setTimeout(function(){
       form.classList.add('leaving');
       setTimeout(function(){
+        var fw = document.querySelector('.form-wrap');
+        fw.style.minHeight = fw.offsetHeight + 'px'; // keep the section height so the page doesn't jump behind the popup
         form.classList.add('hide');
         successPanel.classList.add('show');
+        openSuccessModal();
       }, 200);
     }, 1100);
   });
 </script>
 </body>
 </html>
+
